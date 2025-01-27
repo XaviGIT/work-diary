@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { marked } from 'marked';
+import { Toaster, toast } from 'react-hot-toast';
+
 import { ThemeToggle } from './ThemeToggle';
 import { SearchBar } from './SearchBar';
 import { EntryForm } from './EntryForm';
@@ -62,11 +64,13 @@ const DiaryEntry = () => {
       });
 
       if (!response.ok) throw new Error('Failed to add entry');
+      toast.success('Entry added successfully');
       setTime('');
       setDescription('');
       loadEntries();
     } catch (error) {
       console.error('Error adding entry:', error);
+      toast.error('Failed to add entry');
     }
   };
 
@@ -83,10 +87,12 @@ const DiaryEntry = () => {
           })
         });
         if (!response.ok) throw new Error('Failed to update entry');
+        toast.success('Entry edited successfully');
         setEditingId(null);
         loadEntries();
       } catch (error) {
         console.error('Error updating entry:', error);
+        toast.error('Failed to edit entry');
       }
     } else {
       setEditingId(entry.id);
@@ -94,11 +100,16 @@ const DiaryEntry = () => {
   };
 
   const handleDelete = async (id) => {
+    const confirmed = window.confirm('Are you sure you want to delete this entry?');
+    if (!confirmed) return;
+
     try {
       await fetch(`/api/entries?id=${id}`, { method: 'DELETE' });
+      toast.success('Entry deleted successfully');
       loadEntries();
     } catch (error) {
       console.error('Error deleting:', error);
+      toast.error('Failed to delete entry');
     }
   };
 
@@ -128,6 +139,10 @@ const DiaryEntry = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 dark:bg-gray-900">
+      <Toaster position="top-right" toastOptions={{
+        className: 'dark:bg-gray-800 dark:text-gray-100'
+      }} />
+
       <EntryForm
         description={description}
         setDescription={setDescription}
@@ -167,6 +182,7 @@ const DiaryEntry = () => {
                   onEdit={() => handleEdit(entry)}
                   onDelete={() => handleDelete(entry.id)}
                   onUpdate={(updatedEntry) => handleUpdate(date, index, updatedEntry)}
+                  onCancel={() => setEditingId(null)}
                 />
               ))}
             </div>

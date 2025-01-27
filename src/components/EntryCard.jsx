@@ -1,8 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { marked } from 'marked';
-import { EntryEditor } from './EntryEditor';
 
-export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate }) => (
+export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCancel }) => (
   <div className="p-4 border dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors group ml-4">
     <div className="flex items-center justify-between mb-3">
       {isEditing ? (
@@ -25,7 +24,7 @@ export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate }) => (
           {isEditing ? '✓' : '✎'}
         </button>
         <button
-          onClick={isEditing ? () => onEdit(entry) : onDelete}
+          onClick={isEditing ? () => onCancel(entry) : onDelete}
           className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center"
         >
           {isEditing ? 'x' : <Trash2 size={16} />}
