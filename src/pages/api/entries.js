@@ -3,6 +3,10 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: "postgresql://ctw00373:123@127.0.0.1:5433/work_diary",
+  // adds max size for large content
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
 export async function GET({ request }) {

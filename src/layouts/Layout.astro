@@ -1,10 +1,16 @@
 ---
 const { title } = Astro.props;
+const currentDate = new Date().toLocaleDateString('pt-PT', {
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit'
+})
 ---
 <html lang="en">
 
 <head>
 	<meta charset="utf-8" />
+	<title>{title} {currentDate}</title>
 	<script is:inline>
 		const theme = (() => {
 			if (localStorage.getItem('theme')) {

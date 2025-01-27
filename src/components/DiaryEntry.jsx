@@ -2,8 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Moon, Sun } from 'lucide-react';
 import { marked } from 'marked';
 import { createRoot } from 'react-dom/client';
+import { jsPDF } from 'jspdf';
+
+const formatDate = (dateStr) => {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+const stripMarkdown = (text) => {
+  // Basic markdown stripping - can be enhanced
+  return text
+    .replace(/\!\[.*?\]\(.*?\)/g, '[Image]') // Replace images with [Image]
+    .replace(/\[.*?\]\(.*?\)/g, '') // Remove links
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1') // Remove italic
+    .replace(/\#+ /g, '') // Remove headers
+    .replace(/\- /g, '• '); // Convert list items to bullets
+};
+
+const exportToPDF = (date, entries) => {
+  const doc = new jsPDF();
+  let yPos = 20;
+
+  // Add title
+  doc.setFontSize(16);
+  doc.text(formatDate(date), 20, yPos);
+
+  entries.forEach((entry) => {
+    yPos += 10;
+
+    // Add time
+    doc.setFontSize(12);
+    doc.text(entry.entry_time.substring(0, 5), 20, yPos);
+
+    // Add description with stripped markdown
+    const cleanText = stripMarkdown(entry.description);
+    const lines = doc.splitTextToSize(cleanText, 170);
+    lines.forEach(line => {
+      yPos += 7;
+      if (yPos >= 280) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(line, 30, yPos);
+    });
+
+    yPos += 5; // Space between entries
+  });
+
+  doc.save(`diary-${date}.pdf`);
+};
 
 marked.use({ breaks: true });
+
+const getRoundedTime = () => {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const roundedMinutes = Math.ceil(minutes / 15) * 15;
+  now.setMinutes(roundedMinutes);
+  now.setSeconds(0);
+
+  return now.toTimeString().substring(0, 5);
+};
 
 const ThemeToggle = () => {
   const toggleTheme = () => {
@@ -26,7 +90,7 @@ const ThemeToggle = () => {
 
 const DiaryEntry = () => {
   const [entries, setEntries] = useState([]);
-  const [time, setTime] = useState('');
+  const [time, setTime] = useState(getRoundedTime().toString());
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
@@ -63,15 +127,6 @@ const DiaryEntry = () => {
     } catch (error) {
       console.error('Error loading entries:', error);
     }
-  };
-
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   const handleSubmit = async (e) => {
@@ -115,12 +170,31 @@ const DiaryEntry = () => {
     }
   };
 
-  const deleteEntry = async (id) => {
+  const handleDelete = async (id) => {
     try {
       await fetch(`/api/entries?id=${id}`, { method: 'DELETE' });
       loadEntries();
     } catch (error) {
       console.error('Error deleting:', error);
+    }
+  };
+
+  const handlePaste = async (e) => {
+    const items = e.clipboardData.items;
+    for (let item of items) {
+      if (item.type.indexOf('image') === 0) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+          const base64 = e.target.result;
+          const imageMarkdown = `![image](${base64})`;
+          setDescription(prev => prev + '\n' + imageMarkdown);
+        };
+
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -148,6 +222,7 @@ const DiaryEntry = () => {
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          onPaste={handlePaste}
           placeholder="What happened?"
           className="w-full mb-4 p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none min-h-[100px] resize-y dark:bg-gray-800 dark:text-gray-100"
           required
@@ -190,31 +265,42 @@ const DiaryEntry = () => {
           .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
           .map(([date, dayEntries]) => (
             <div key={date} className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{formatDate(date)}</h2>
+               <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                    {formatDate(date)}
+                  </h2>
+                  <button
+                    onClick={() => exportToPDF(date, dayEntries)}
+                    className="px-3 py-1 text-sm bg-black dark:bg-gray-700 text-white rounded hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Export PDF
+                  </button>
+                </div>
               {dayEntries.map((entry) => (
                 <div
                   key={entry.id}
                   className="p-4 border dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors group ml-4"
                 >
                   {editingId === entry.id ? (
-                    <div className="flex gap-4 items-start">
-                      <input
-                        type="time"
-                        value={entry.entry_time.substring(0, 5)}
-                        onChange={(e) => {
-                          const updatedEntries = {...entries};
-                          const entryDate = entry.entry_date.split('T')[0];
-                          const entryIndex = updatedEntries[entryDate].findIndex(e => e.id === entry.id);
-                          updatedEntries[entryDate][entryIndex] = {
-                            ...entry,
-                            entry_time: e.target.value
-                          };
-                          setEntries(updatedEntries);
-                        }}
-                        className="p-2 border dark:border-gray-700 rounded w-24 dark:bg-gray-800 dark:text-gray-100"
-                      />
-                      <input
-                        type="text"
+                    <div className="flex flex-col gap-4">
+                      <div className="flex gap-4">
+                        <input
+                          type="time"
+                          value={entry.entry_time.substring(0, 5)}
+                          onChange={(e) => {
+                            const updatedEntries = {...entries};
+                            const entryDate = entry.entry_date.split('T')[0];
+                            const entryIndex = updatedEntries[entryDate].findIndex(e => e.id === entry.id);
+                            updatedEntries[entryDate][entryIndex] = {
+                              ...entry,
+                              entry_time: e.target.value
+                            };
+                            setEntries(updatedEntries);
+                          }}
+                          className="p-2 border dark:border-gray-700 rounded w-24 dark:bg-gray-800 dark:text-gray-100"
+                        />
+                      </div>
+                      <textarea
                         value={entry.description}
                         onChange={(e) => {
                           const updatedEntries = {...entries};
@@ -226,7 +312,7 @@ const DiaryEntry = () => {
                           };
                           setEntries(updatedEntries);
                         }}
-                        className="flex-1 p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-gray-100"
+                        className="flex-1 p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-gray-100 min-h-[100px] resize-y w-full"
                       />
                     </div>
                   ) : (
@@ -241,7 +327,7 @@ const DiaryEntry = () => {
                             {editingId === entry.id ? '✓' : '✎'}
                           </button>
                           <button
-                            onClick={() => editingId === entry.id ? setEditingId(null) : deleteEntry(entry.id)}
+                            onClick={() => editingId === entry.id ? setEditingId(null) : handleDelete(entry.id)}
                             className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center"
                           >
                             {editingId === entry.id ? 'x' : <Trash2 size={16} />}
