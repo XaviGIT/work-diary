@@ -7,6 +7,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { SearchBar } from './SearchBar';
 import { EntryForm } from './EntryForm';
 import { EntryCard } from './EntryCard';
+import { MonthPicker } from './MonthPicker';
 import { formatDate, getRoundedTime } from '../utils/dates';
 import { exportToPDF } from '../utils/pdf';
 
@@ -19,11 +20,16 @@ const DiaryEntry = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   useEffect(() => {
     loadEntries();
     initThemeToggle();
   }, []);
+
+  useEffect(() => {
+    loadEntries();
+  }, [selectedMonth]);
 
   const initThemeToggle = () => {
     const toggleContainer = document.getElementById('theme-toggle');
@@ -34,25 +40,25 @@ const DiaryEntry = () => {
   };
 
   const loadEntries = async () => {
-    try {
-      const response = await fetch('/api/entries');
-      const data = await response.json();
-      const groupedEntries = data.reduce((groups, entry) => {
-        const date = entry.entry_date.split('T')[0];
-        if (!groups[date]) groups[date] = [];
-        groups[date].push(entry);
-        return groups;
-      }, {});
+  try {
+    const response = await fetch(`/api/entries?month=${selectedMonth}`);
+    const data = await response.json();
+    const groupedEntries = data.reduce((groups, entry) => {
+      const date = entry.entry_date.split('T')[0];
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(entry);
+      return groups;
+    }, {});
 
-      Object.keys(groupedEntries).forEach(date => {
-        groupedEntries[date].sort((a, b) => a.entry_time.localeCompare(b.entry_time));
-      });
+    Object.keys(groupedEntries).forEach(date => {
+      groupedEntries[date].sort((a, b) => a.entry_time.localeCompare(b.entry_time));
+    });
 
-      setEntries(groupedEntries);
-    } catch (error) {
-      console.error('Error loading entries:', error);
-    }
-  };
+    setEntries(groupedEntries);
+  } catch (error) {
+    console.error('Error loading entries:', error);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,6 +145,11 @@ const DiaryEntry = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 dark:bg-gray-900">
+      <MonthPicker
+        selectedMonth={selectedMonth}
+        onMonthChange={setSelectedMonth}
+      />
+
       <Toaster position="top-right" toastOptions={{
         className: 'dark:bg-gray-800 dark:text-gray-100'
       }} />

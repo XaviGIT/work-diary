@@ -10,14 +10,18 @@ const pool = new Pool({
 });
 
 export async function GET({ request }) {
-  try {
-    const url = new URL(request.url);
-    const date = url.searchParams.get("date");
+  const url = new URL(request.url);
+  const date = url.searchParams.get("date");
+  const month = url.searchParams.get("month");
 
+  try {
     let query = "SELECT * FROM diary_entries";
     let params = [];
 
-    if (date) {
+    if (month) {
+      query += " WHERE to_char(entry_date, 'YYYY-MM') = $1";
+      params.push(month);
+    } else if (date) {
       query += " WHERE entry_date = $1";
       params.push(date);
     }
