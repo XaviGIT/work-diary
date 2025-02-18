@@ -3,7 +3,7 @@ import * as Popover from '@radix-ui/react-popover';
 
 export const MonthPicker = ({ selectedMonth, onMonthChange }) => {
   return (
-    <div className="fixed right-4 top-1/2 transform -translate-y-1/2">
+    <div className="relative">
       <Popover.Root>
         <Popover.Trigger asChild>
           <button

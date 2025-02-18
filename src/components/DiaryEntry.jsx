@@ -8,8 +8,10 @@ import { SearchBar } from './SearchBar';
 import { EntryForm } from './EntryForm';
 import { EntryCard } from './EntryCard';
 import { MonthPicker } from './MonthPicker';
+import { VisibilityToggle } from './VisibilityToggle';
 import { formatDate, getRoundedTime } from '../utils/dates';
 import { exportToPDF } from '../utils/pdf';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 
 marked.use({ breaks: true });
 
@@ -21,6 +23,9 @@ const DiaryEntry = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [isBlurred, setIsBlurred] = useState(() =>
+    getStorageItem('contentBlurred', false)
+  );
 
   useEffect(() => {
     loadEntries();
@@ -31,34 +36,65 @@ const DiaryEntry = () => {
     loadEntries();
   }, [selectedMonth]);
 
+  useEffect(() => {
+    setStorageItem('contentBlurred', isBlurred);
+  }, [isBlurred]);
+
+  // Add keyboard shortcut (Ctrl+H or Cmd+H) to toggle blur
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check for Ctrl+H or Cmd+H
+      if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault();
+        setIsBlurred(prev => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Initialize theme toggle
   const initThemeToggle = () => {
     const toggleContainer = document.getElementById('theme-toggle');
     if (toggleContainer) {
       const root = createRoot(toggleContainer);
       root.render(<ThemeToggle />);
     }
+
+    // Initialize visibility toggle
+    const visibilityContainer = document.getElementById('visibility-toggle');
+    if (visibilityContainer) {
+      const root = createRoot(visibilityContainer);
+      root.render(
+        <VisibilityToggle
+          isBlurred={isBlurred}
+          onToggle={() => setIsBlurred(prevState => !prevState)}
+        />
+      );
+    }
   };
 
   const loadEntries = async () => {
-  try {
-    const response = await fetch(`/api/entries?month=${selectedMonth}`);
-    const data = await response.json();
-    const groupedEntries = data.reduce((groups, entry) => {
-      const date = entry.entry_date.split('T')[0];
-      if (!groups[date]) groups[date] = [];
-      groups[date].push(entry);
-      return groups;
-    }, {});
+    try {
+      const response = await fetch(`/api/entries?month=${selectedMonth}`);
+      const data = await response.json();
+      const groupedEntries = data.reduce((groups, entry) => {
+        const date = entry.entry_date.split('T')[0];
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(entry);
+        return groups;
+      }, {});
 
-    Object.keys(groupedEntries).forEach(date => {
-      groupedEntries[date].sort((a, b) => a.entry_time.localeCompare(b.entry_time));
-    });
+      Object.keys(groupedEntries).forEach(date => {
+        groupedEntries[date].sort((a, b) => a.entry_time.localeCompare(b.entry_time));
+      });
 
-    setEntries(groupedEntries);
-  } catch (error) {
-    console.error('Error loading entries:', error);
-  }
-};
+      setEntries(groupedEntries);
+    } catch (error) {
+      console.error('Error loading entries:', error);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,7 +107,7 @@ const DiaryEntry = () => {
 
       if (!response.ok) throw new Error('Failed to add entry');
       toast.success('Entry added successfully');
-      setTime('');
+      setTime(getRoundedTime().toString());
       setDescription('');
       loadEntries();
     } catch (error) {
@@ -145,10 +181,15 @@ const DiaryEntry = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 dark:bg-gray-900">
-      <MonthPicker
-        selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
-      />
+      {/* Controls in the top-right corner */}
+      <div className="fixed top-4 right-4 z-10 flex gap-2">
+        <MonthPicker
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
+        <div id="visibility-toggle"></div>
+        <div id="theme-toggle"></div>
+      </div>
 
       <Toaster position="top-right" toastOptions={{
         className: 'dark:bg-gray-800 dark:text-gray-100'
@@ -162,6 +203,7 @@ const DiaryEntry = () => {
         time={time}
         setTime={setTime}
         onSubmit={handleSubmit}
+        isBlurred={isBlurred}
       />
 
       <SearchBar
@@ -194,6 +236,7 @@ const DiaryEntry = () => {
                   onDelete={() => handleDelete(entry.id)}
                   onUpdate={(updatedEntry) => handleUpdate(date, index, updatedEntry)}
                   onCancel={() => setEditingId(null)}
+                  isBlurred={isBlurred}
                 />
               ))}
             </div>

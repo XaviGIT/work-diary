@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { marked } from 'marked';
 
-export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCancel }) => (
+export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCancel, isBlurred }) => (
   <div className="p-4 border dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors group ml-4">
     <div className="flex items-center justify-between mb-3">
       {isEditing ? (
@@ -36,11 +36,15 @@ export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCanc
       <textarea
         value={entry.description}
         onChange={(e) => onUpdate({ ...entry, description: e.target.value })}
-        className="w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-gray-100 min-h-[100px] resize-y"
+        className={`w-full p-2 border dark:border-gray-700 rounded dark:bg-gray-800 dark:text-gray-100 min-h-[100px] resize-y ${
+          isBlurred ? 'blur-md focus:blur-none hover:blur-none' : ''
+        }`}
       />
     ) : (
       <div
-        className="prose prose-sm dark:prose-invert max-w-none"
+        className={`prose prose-sm dark:prose-invert max-w-none ${
+          isBlurred ? 'blur-md hover:blur-none' : ''
+        }`}
         dangerouslySetInnerHTML={{ __html: marked(entry.description) }}
       />
     )}

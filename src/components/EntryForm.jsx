@@ -1,4 +1,4 @@
-export const EntryForm = ({ description, setDescription, date, setDate, time, setTime, onSubmit }) => {
+export const EntryForm = ({ description, setDescription, date, setDate, time, setTime, onSubmit, isBlurred }) => {
   const handlePaste = async (e) => {
     const items = e.clipboardData.items;
     for (let item of items) {
@@ -25,7 +25,9 @@ export const EntryForm = ({ description, setDescription, date, setDate, time, se
         onChange={(e) => setDescription(e.target.value)}
         onPaste={handlePaste}
         placeholder="What happened?"
-        className="w-full mb-4 p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none min-h-[100px] resize-y dark:bg-gray-800 dark:text-gray-100"
+        className={`w-full mb-4 p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none min-h-[100px] resize-y dark:bg-gray-800 dark:text-gray-100 ${
+          isBlurred ? 'blur-md focus:blur-none hover:blur-none' : ''
+        }`}
         required
       />
       <div className="flex gap-4">
