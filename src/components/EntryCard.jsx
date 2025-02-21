@@ -1,7 +1,21 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, Clipboard, ClipboardCheck } from 'lucide-react';
+import React, { useState } from 'react';
 import { marked } from 'marked';
 
-export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCancel, isBlurred }) => (
+export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCancel, isBlurred }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(entry.description);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
+  return (
   <div className="p-4 border dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors group ml-4">
     <div className="flex items-center justify-between mb-3">
       {isEditing ? (
@@ -17,6 +31,13 @@ export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCanc
         </span>
       )}
       <div className="flex gap-2 opacity-0 group-hover:opacity-100">
+        <button
+          onClick={handleCopy}
+          className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors w-8 h-8 flex items-center justify-center"
+          title="Copy to clipboard"
+        >
+          {isCopied ? <ClipboardCheck size={16} /> : <Clipboard size={16} />}
+        </button>
         <button
           onClick={onEdit}
           className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center"
@@ -49,4 +70,5 @@ export const EntryCard = ({ entry, isEditing, onEdit, onDelete, onUpdate, onCanc
       />
     )}
   </div>
-);
+  );
+};
