@@ -11,6 +11,8 @@ const currentDate = new Date().toLocaleDateString('pt-PT', {
 <head>
 	<meta charset="utf-8" />
 	<title>{title} {currentDate}</title>
+	<meta name="viewport" content="width=device-width" />
+	<link rel="icon" href="/favicon.ico" type="image/x-icon">
 	<script is:inline>
 		const theme = (() => {
 			if (localStorage.getItem('theme')) {
