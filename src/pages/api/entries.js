@@ -1,18 +1,27 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
-const pool = new Pool({
-  connectionString: "postgresql://ctw00373:123@127.0.0.1:5433/work_diary",
-  // adds max size for large content
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+export function getPool() {
+  return new Pool({
+    connectionString: import.meta.env.DATABASE_URL,
+    // adds max size for large content
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  });
+}
+
+let pool = null;
 
 export async function GET({ request }) {
   const url = new URL(request.url);
   const date = url.searchParams.get("date");
   const month = url.searchParams.get("month");
+
+  if (!pool) {
+    pool = getPool();
+    console.log("DB Connection Pool created");
+  }
 
   try {
     let query = "SELECT * FROM diary_entries";
@@ -43,6 +52,11 @@ export async function GET({ request }) {
 
 export async function POST({ request }) {
   try {
+    if (!pool) {
+      pool = getPool();
+      console.log("DB Connection Pool created");
+    }
+
     const body = await request.json();
     console.log("Body:", body);
 
@@ -74,6 +88,11 @@ export async function DELETE({ request }) {
   const id = url.searchParams.get("id");
 
   try {
+    if (!pool) {
+      pool = getPool();
+      console.log("DB Connection Pool created");
+    }
+
     await pool.query("DELETE FROM diary_entries WHERE id = $1", [id]);
     return new Response(null, { status: 204 });
   } catch (error) {
@@ -90,6 +109,11 @@ export async function PUT({ request }) {
   const { time, description } = await request.json();
 
   try {
+    if (!pool) {
+      pool = getPool();
+      console.log("DB Connection Pool created");
+    }
+
     const result = await pool.query(
       "UPDATE diary_entries SET entry_time = $1, description = $2 WHERE id = $3 RETURNING *",
       [time, description, id]
