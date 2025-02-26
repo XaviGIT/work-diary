@@ -13,6 +13,14 @@
 - Month picker for filtering entries
 - Environment variables setup
 - API abstraction
+- Enhanced UI/UX improvements:
+  - Timeline-style entry layout
+  - Expandable entry form with better visual cues
+  - Improved visual hierarchy and organization
+  - Animations for smoother user experience
+  - Better empty states and loading indicators
+  - Keyboard shortcuts (Escape to cancel, Ctrl/Cmd+H for privacy toggle)
+  - Image paste functionality with visual indicator
 
 ## 🚧 In Progress
 
@@ -24,19 +32,19 @@
 
 ### Short Term (1-2 months)
 
-- **Improved UI/UX**
+- **Further UI/UX Improvements**
 
-  - Redesign entry cards for better readability
-  - Add animations for smoother transitions
-  - Implement a more intuitive calendar interface
-  - Enhance mobile experience
+  - Add entry categorization/tagging with color coding
+  - Implement entry importance/priority levels
+  - Add animations for list transitions
+  - Enhance mobile experience with touch gestures
   - Improve form validation feedback
 
 - **Data Management**
 
   - Implement data backup and export functionality
-  - Add entry categorization/tagging
   - Add search filters by date, content, and tags
+  - Implement data visualization for entry patterns
 
 - **Developer Experience**
   - Complete API abstraction layer

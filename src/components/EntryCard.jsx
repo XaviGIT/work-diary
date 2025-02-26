@@ -43,9 +43,10 @@ export const EntryCard = ({
 
   // Determine importance level based on entry length
   const getImportanceLevel = () => {
-    if (wordCount < 20) return 'low';
-    if (wordCount < 100) return 'medium';
-    return 'high';
+    return 'medium';
+    // if (wordCount < 20) return 'low';
+    // if (wordCount < 100) return 'medium';
+    // return 'high';
   };
 
   const importanceColors = {

@@ -3,8 +3,5 @@ import Layout from '../layouts/Layout.astro';
 import DiaryEntry from '../components/DiaryEntry.jsx';
 ---
 <Layout title="Work Diary">
-	<div class="relative px-6 my-8">
-		<h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Work Diary</h1>
-	</div>
 	<DiaryEntry client:load />
 </Layout>
