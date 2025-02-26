@@ -13,6 +13,7 @@ import { formatDate, getRoundedTime } from '../utils/dates';
 import { exportToPDF } from '../utils/pdf';
 import { getStorageItem, setStorageItem } from '../utils/storage';
 import { api } from '../utils/api';
+import { LoadingSpinner } from './LoadingComponent';
 
 marked.use({ breaks: true });
 
@@ -27,7 +28,14 @@ const DiaryEntry = () => {
   const [isBlurred, setIsBlurred] = useState(() =>
     getStorageItem('contentBlurred', false)
   );
+
+
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savingIds, setSavingIds] = useState([]);
+  const [deletingIds, setDeletingIds] = useState([]);
+  const [exportingDate, setExportingDate] = useState(null);
+
 
   useEffect(() => {
     loadEntries();
@@ -78,6 +86,8 @@ const DiaryEntry = () => {
   };
 
   const loadEntries = async () => {
+    setIsLoading(true);
+
     try {
       const data = await api.getEntriesByMonth(selectedMonth);
       const groupedEntries = data.reduce((groups, entry) => {
@@ -94,6 +104,8 @@ const DiaryEntry = () => {
       setEntries(groupedEntries);
     } catch (error) {
       console.error('Error loading entries:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,7 +128,7 @@ const DiaryEntry = () => {
 
   const handleEdit = async (entry) => {
     if (editingId === entry.id) {
-      setIsSubmitting(true);
+      setSavingIds(prev => [...prev, entry.id]);
 
       try {
         await api.updateEntry(entry.id, {
@@ -130,7 +142,7 @@ const DiaryEntry = () => {
       } catch (error) {
         toast.error(error.message || 'Failed to edit entry');
       } finally {
-        setIsSubmitting(false);
+        setSavingIds(prev => prev.filter(id => id !== entry.id));
       }
     } else {
       setEditingId(entry.id);
@@ -140,7 +152,7 @@ const DiaryEntry = () => {
   const handleDelete = async (id) => {
     const confirmed = window.confirm('Are you sure you want to delete this entry?');
     if (!confirmed) return;
-    setIsSubmitting(true);
+    setDeletingIds(prev => [...prev, id]);
 
     try {
       await api.deleteEntry(id);
@@ -149,7 +161,7 @@ const DiaryEntry = () => {
     } catch (error) {
       toast.error(error.message || 'Failed to delete entry');
     } finally {
-      setIsSubmitting(false);
+      setDeletingIds(prev => prev.filter(item => item !== id));
     }
   };
 
@@ -157,6 +169,19 @@ const DiaryEntry = () => {
     const updatedEntries = {...entries};
     updatedEntries[dateStr][entryIndex] = updatedEntry;
     setEntries(updatedEntries);
+  };
+
+  const handleExportPDF = async (date, dayEntries) => {
+    setExportingDate(date);
+    try {
+      await exportToPDF(date, dayEntries);
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error(error.message || 'Failed to export PDF');
+    } finally {
+      setExportingDate(null);
+    }
   };
 
   const filterEntries = (entries, query) => {
@@ -201,7 +226,7 @@ const DiaryEntry = () => {
         time={time}
         setTime={setTime}
         onSubmit={handleSubmit}
-        isBlurred={isBlurred}
+        isSubmitting={isSubmitting}
       />
 
       <SearchBar
@@ -209,6 +234,20 @@ const DiaryEntry = () => {
         setSearchQuery={setSearchQuery}
       />
 
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center p-12">
+          <LoadingSpinner size="lg" className="mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading entries...</p>
+        </div>
+      ) : Object.keys(filteredEntries).length === 0 ? (
+        <div className="text-center p-12 border border-dashed rounded-lg border-gray-300 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">
+            {searchQuery
+              ? "No entries match your search"
+              : "No entries found for this month. Create your first entry!"}
+          </p>
+        </div>
+      ) : (
       <div className="space-y-8">
         {Object.entries(filteredEntries)
           .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
@@ -219,11 +258,19 @@ const DiaryEntry = () => {
                   {formatDate(date)}
                 </h2>
                 <button
-                  onClick={() => exportToPDF(date, dayEntries)}
-                  className="px-3 py-1 text-sm bg-black dark:bg-gray-700 text-white rounded hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Export PDF
-                </button>
+                    onClick={() => handleExportPDF(date, dayEntries)}
+                    className="px-3 py-1 text-sm bg-black dark:bg-gray-700 text-white rounded hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors flex items-center"
+                    disabled={exportingDate === date}
+                  >
+                    {exportingDate === date ? (
+                      <>
+                        <LoadingSpinner size="sm" className="mr-2" />
+                        Exporting...
+                      </>
+                    ) : (
+                      'Export PDF'
+                    )}
+                  </button>
               </div>
               {dayEntries.map((entry, index) => (
                 <EntryCard
@@ -235,11 +282,14 @@ const DiaryEntry = () => {
                   onUpdate={(updatedEntry) => handleUpdate(date, index, updatedEntry)}
                   onCancel={() => setEditingId(null)}
                   isBlurred={isBlurred}
+                  sDeleting={deletingIds.includes(entry.id)}
+                  isSaving={savingIds.includes(entry.id)}
                 />
               ))}
             </div>
           ))}
       </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,15 @@
-export const EntryForm = ({ description, setDescription, date, setDate, time, setTime, onSubmit, isBlurred }) => {
+import { LoadingButton } from './LoadingComponent';
+
+export const EntryForm = ({
+  description,
+  setDescription,
+  date,
+  setDate,
+  time,
+  setTime,
+  onSubmit,
+  isSubmitting = false
+}) => {
   const handlePaste = async (e) => {
     const items = e.clipboardData.items;
     for (let item of items) {
@@ -26,6 +37,7 @@ export const EntryForm = ({ description, setDescription, date, setDate, time, se
         onPaste={handlePaste}
         placeholder="What happened?"
         className='w-full mb-4 p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none min-h-[100px] resize-y dark:bg-gray-800 dark:text-gray-100'
+        disabled={isSubmitting}
         required
       />
       <div className="flex gap-4">
@@ -34,20 +46,23 @@ export const EntryForm = ({ description, setDescription, date, setDate, time, se
           value={date}
           onChange={(e) => setDate(e.target.value)}
           className="p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
+          disabled={isSubmitting}
         />
         <input
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
           className="p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-black dark:focus:ring-gray-300 focus:outline-none dark:bg-gray-800 dark:text-gray-100 dark:[color-scheme:dark]"
+          disabled={isSubmitting}
           required
         />
-        <button
+        <LoadingButton
           type="submit"
-          className="px-6 py-2 bg-black dark:bg-gray-700 text-white rounded hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors"
+          isLoading={isSubmitting}
+          loadingText="Adding..."
         >
           Add
-        </button>
+        </LoadingButton>
       </div>
     </form>
   );
