@@ -5,6 +5,7 @@ const currentDate = new Date().toLocaleDateString('pt-PT', {
 	month: '2-digit',
 	day: '2-digit'
 })
+import '../styles/highlight.css';
 ---
 <html lang="en">
 
@@ -24,7 +25,7 @@ const currentDate = new Date().toLocaleDateString('pt-PT', {
 	</script>
 </head>
 
-<body class="dark:bg-gray-900">
+<body class="dark:bg-gray-900 bg-gray-50 transition-colors duration-200">
 	<slot />
 </body>
 
