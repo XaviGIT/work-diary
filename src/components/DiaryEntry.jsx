@@ -12,6 +12,7 @@ import { VisibilityToggle } from './VisibilityToggle';
 import { formatDate, getRoundedTime } from '../utils/dates';
 import { exportToPDF } from '../utils/pdf';
 import { getStorageItem, setStorageItem } from '../utils/storage';
+import { api } from '../utils/api';
 
 marked.use({ breaks: true });
 
@@ -26,6 +27,7 @@ const DiaryEntry = () => {
   const [isBlurred, setIsBlurred] = useState(() =>
     getStorageItem('contentBlurred', false)
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -77,8 +79,7 @@ const DiaryEntry = () => {
 
   const loadEntries = async () => {
     try {
-      const response = await fetch(`/api/entries?month=${selectedMonth}`);
-      const data = await response.json();
+      const data = await api.getEntriesByMonth(selectedMonth);
       const groupedEntries = data.reduce((groups, entry) => {
         const date = entry.entry_date.split('T')[0];
         if (!groups[date]) groups[date] = [];
@@ -98,43 +99,38 @@ const DiaryEntry = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, time, description })
-      });
+    setIsSubmitting(true);
 
-      if (!response.ok) throw new Error('Failed to add entry');
+    try {
+      await api.addEntry({ date, time, description });
       toast.success('Entry added successfully');
       setTime(getRoundedTime().toString());
       setDescription('');
       loadEntries();
     } catch (error) {
-      console.error('Error adding entry:', error);
-      toast.error('Failed to add entry');
+      toast.error(error.message || 'Failed to add entry');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = async (entry) => {
     if (editingId === entry.id) {
+      setIsSubmitting(true);
+
       try {
-        const response = await fetch(`/api/entries?id=${entry.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: entry.entry_date,
-            time: entry.entry_time.substring(0, 5),
-            description: entry.description
-          })
+        await api.updateEntry(entry.id, {
+          date: entry.entry_date,
+          time: entry.entry_time.substring(0, 5),
+          description: entry.description
         });
-        if (!response.ok) throw new Error('Failed to update entry');
         toast.success('Entry edited successfully');
         setEditingId(null);
         loadEntries();
       } catch (error) {
-        console.error('Error updating entry:', error);
-        toast.error('Failed to edit entry');
+        toast.error(error.message || 'Failed to edit entry');
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       setEditingId(entry.id);
@@ -144,14 +140,16 @@ const DiaryEntry = () => {
   const handleDelete = async (id) => {
     const confirmed = window.confirm('Are you sure you want to delete this entry?');
     if (!confirmed) return;
+    setIsSubmitting(true);
 
     try {
-      await fetch(`/api/entries?id=${id}`, { method: 'DELETE' });
+      await api.deleteEntry(id);
       toast.success('Entry deleted successfully');
       loadEntries();
     } catch (error) {
-      console.error('Error deleting:', error);
-      toast.error('Failed to delete entry');
+      toast.error(error.message || 'Failed to delete entry');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
